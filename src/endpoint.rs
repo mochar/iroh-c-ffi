@@ -615,12 +615,12 @@ pub async fn endpoint_accept(
 async fn accept_conn(
     ep: &repr_c::Box<Endpoint>,
 ) -> Result<(Vec<u8>, iroh::endpoint::Connection), AcceptError> {
-    let mut conn = ep
-        .ep
-        .read()
-        .await
-        .as_ref()
-        .expect("endpoint not initalized")
+    let endpoint = {
+        let guard = ep.ep.read().await;
+        guard.as_ref().expect("endpoint not initialized").clone()
+    }; 
+
+     let mut conn = endpoint
         .accept()
         .await
         .ok_or(AcceptError::ConnectionClosed(anyhow::anyhow!(
@@ -628,10 +628,12 @@ async fn accept_conn(
         )))?
         .accept()
         .map_err(|e| AcceptError::IncomingError(e.into()))?;
+
     let alpn = conn.alpn().await.map_err(AcceptError::ALPNError)?;
     let connection = conn
         .await
         .map_err(|e| AcceptError::ConnectionError(e.into()))?;
+
     Ok((alpn, connection))
 }
 
