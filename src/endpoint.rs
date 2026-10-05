@@ -360,15 +360,12 @@ pub async fn connection_accept_bi(
     recv: &mut repr_c::Box<RecvStream>,
 ) -> EndpointResult {
     ffi_await!(async move {
-        let res = conn
-            .connection
-            .read()
-            .await
-            .as_ref()
-            .expect("connection not initialized")
-            .accept_bi()
-            .await
-            .context("accept_uni");
+        let connection = {
+            let guard = conn.connection.read().await;
+            guard.as_ref().expect("connection not initialized").clone()
+        };
+
+        let res = connection.accept_bi().await.context("accept_uni");
 
         match res {
             Ok((send_stream, recv_stream)) => {
@@ -618,9 +615,9 @@ async fn accept_conn(
     let endpoint = {
         let guard = ep.ep.read().await;
         guard.as_ref().expect("endpoint not initialized").clone()
-    }; 
+    };
 
-     let mut conn = endpoint
+    let mut conn = endpoint
         .accept()
         .await
         .ok_or(AcceptError::ConnectionClosed(anyhow::anyhow!(
