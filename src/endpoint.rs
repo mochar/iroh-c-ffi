@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, warn};
 
 use crate::addr::{EndpointAddr, SocketAddrV4, SocketAddrV6};
-use crate::key::{secret_key_generate, SecretKey};
+use crate::key::{secret_key_generate, SecretKey, PublicKey};
 use crate::stream::{RecvStream, SendStream};
 
 use crate::util::{tokio_executor, TOKIO_EXECUTOR};
@@ -403,6 +403,16 @@ pub fn connection_default() -> repr_c::Box<Connection> {
 pub async fn connection_free(conn: repr_c::Box<Connection>) {
     ffi_await!(async move {
         let _ = conn.connection.write().await.take();
+    })
+}
+
+/// Returns the EndpointId/PublicKey of the connected peer.
+#[ffi_export(executor=tokio_executor)]
+pub async fn connection_remote_id(conn: &repr_c::Box<Connection>) -> PublicKey {
+    ffi_await!(async move {
+        let c = conn.connection.read().await;
+        let c = c.as_ref().expect("connection not initialized");
+        c.remote_id().into()
     })
 }
 
