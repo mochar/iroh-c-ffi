@@ -147,6 +147,37 @@ pub async fn recv_stream_read_to_end_timeout(
     })
 }
 
+/// Read an exact number of bytes contiguously from the stream.
+///
+/// Blocks the current thread, until either the bytes has been read, or
+/// the timeout has expired.
+#[ffi_export(executor=tokio_executor)]
+pub async fn recv_stream_read_exact_timeout(
+    stream: &mut repr_c::Box<RecvStream>,
+    mut data: slice::slice_mut<'_, u8>,
+    timeout_ms: u64,
+) -> EndpointResult {
+    let timeout = Duration::from_millis(timeout_ms);
+    
+    ffi_await!(async move {
+        let res = tokio::time::timeout(timeout, async move {
+            stream
+                .stream
+                .as_mut()
+                .expect("sendstream not initialized")
+                .read_exact(&mut data)
+                .await
+        })
+        .await;
+
+        match res {
+            Ok(Ok(())) => EndpointResult::Ok,
+            Ok(Err(_err)) => EndpointResult::ReadError,
+            Err(_err) => EndpointResult::Timeout,
+        }
+    })
+}
+
 /// A stream that can only be used to send data
 #[derive_ReprC]
 #[repr(opaque)]
