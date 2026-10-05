@@ -243,6 +243,25 @@ connection_read_datagram_timeout (
     Vec_uint8_t * data,
     uint64_t timeout_ms);
 
+typedef struct {
+    uint8_t idx[32];
+} uint8_32_array_t;
+
+/** \brief
+ *  A public key.
+ */
+typedef struct PublicKey {
+    /** <No documentation available> */
+    uint8_32_array_t key;
+} PublicKey_t;
+
+/** \brief
+ *  Returns the EndpointId/PublicKey of the connected peer.
+ */
+PublicKey_t
+connection_remote_id (
+    Connection_t * const * conn);
+
 /** \brief
  *  Estimated roundtrip time for the current connection's selected path in milli seconds.
  *  Returns 0 if no path is selected.
@@ -345,18 +364,6 @@ endpoint_accept_any_cb (
     Endpoint_t * ep,
     void const * ctx,
     void (*cb)(void const *, EndpointResult_t, Vec_uint8_t, Connection_t *));
-
-typedef struct {
-    uint8_t idx[32];
-} uint8_32_array_t;
-
-/** \brief
- *  A public key.
- */
-typedef struct PublicKey {
-    /** <No documentation available> */
-    uint8_32_array_t key;
-} PublicKey_t;
 
 /** \brief
  *  Represents a valid URL.
@@ -868,6 +875,18 @@ int64_t
 recv_stream_read (
     RecvStream_t * * stream,
     slice_mut_uint8_t data);
+
+/** \brief
+ *  Read an exact number of bytes contiguously from the stream.
+ *
+ *  Blocks the current thread, until either the bytes has been read, or
+ *  the timeout has expired.
+ */
+EndpointResult_t
+recv_stream_read_exact_timeout (
+    RecvStream_t * * stream,
+    slice_mut_uint8_t data,
+    uint64_t timeout_ms);
 
 /** \brief
  *  Receive data on this stream and return with an error if reading exceeds the
