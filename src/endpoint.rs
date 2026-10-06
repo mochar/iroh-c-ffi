@@ -873,14 +873,12 @@ pub async fn endpoint_connect(
     out: &repr_c::Box<Connection>,
 ) -> EndpointResult {
     ffi_await!(async move {
-        let conn = ep
-            .ep
-            .read()
-            .await
-            .as_ref()
-            .expect("endpoint not initialized")
-            .connect(endpoint_addr, alpn.as_ref())
-            .await;
+        let endpoint = {
+            let guard = ep.ep.read().await;
+            guard.as_ref().expect("endpoint not initialized").clone()
+        };
+
+        let conn = endpoint.connect(endpoint_addr, alpn.as_ref()).await;
 
         match conn {
             Ok(connection) => {
